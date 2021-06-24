@@ -46,11 +46,11 @@ function Promise(executor){
 Promise.prototype.then = function(onResolved, onRejected){
     const self = this;
     return new Promise((resolve, reject) => {
-        //调用回调函数  PromiseState
-        if(this.PromiseState === 'fulfilled'){
+        //封装函数
+        function callback(type){
             try{
                 //获取回调函数的执行结果
-                let result = onResolved(this.PromiseResult);
+                let result = type(self.PromiseResult);
                 //判断
                 if(result instanceof Promise){
                     //如果是 Promise 类型的对象
@@ -67,61 +67,22 @@ Promise.prototype.then = function(onResolved, onRejected){
                 reject(e);
             }
         }
+        //调用回调函数  PromiseState
+        if(this.PromiseState === 'fulfilled'){
+            callback(onResolved);
+        }
         if(this.PromiseState === 'rejected'){
-            try{
-                let result = onRejected(this.PromiseResult);
-                if(result instanceof Promise){
-                    result.then(v => {
-                        resolve(v);
-                    }, r=>{
-                        reject(r);
-                    })
-                }else{
-                    resolve(result);
-                }
-            }catch(e){
-                reject(e);
-            }
+            callback(onRejected);
         }
         //判断 pending 状态
         if(this.PromiseState === 'pending'){
             //保存回调函数
             this.callbacks.push({
                 onResolved: function(){
-                    try{
-                        //执行成功回调函数
-                        let result = onResolved(self.PromiseResult);
-                        //判断
-                        if(result instanceof Promise){
-                            result.then(v => {
-                                resolve(v);
-                            }, r=>{
-                                reject(r);
-                            })
-                        }else{
-                            resolve(result);
-                        }
-                    }catch(e){
-                        reject(e);
-                    }
+                    callback(onResolved);
                 },
                 onRejected: function(){
-                    try{
-                        //执行成功回调函数
-                        let result = onRejected(self.PromiseResult);
-                        //判断
-                        if(result instanceof Promise){
-                            result.then(v => {
-                                resolve(v);
-                            }, r=>{
-                                reject(r);
-                            })
-                        }else{
-                            resolve(result);
-                        }
-                    }catch(e){
-                        reject(e);
-                    }
+                    callback(onRejected);
                 }
             });
         }
